@@ -1,6 +1,13 @@
 package bgu.spl.net.impl.tftp;
 
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Dictionary;
+
+import javax.xml.crypto.dsig.keyinfo.KeyValue;
+
 import bgu.spl.net.api.BidiMessagingProtocol;
+import bgu.spl.net.srv.ConnectionHandler;
 import bgu.spl.net.srv.Connections;
 
 public class TftpProtocol implements BidiMessagingProtocol<byte[]>  {
@@ -8,13 +15,15 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>  {
     private boolean shouldTerminate = false;
     private int connectionId;
     private Connections<byte[]> connections;
+    private ConnectionHandler<byte[]> connectionHandler;
 
     @Override
-    public void start(int connectionId, Connections<byte[]> connections) {
+    public void start(int connectionId, Connections<byte[]> connections, ConnectionHandler<byte[]> connectionHandler) {
         // TODO implement this
         this.shouldTerminate = false;
         this.connectionId = connectionId;
         this.connections = connections;
+        this.connectionHandler = connectionHandler;
         //ConnectionsImpl.ids_login.put(connectionId, true);
     }
 
@@ -77,14 +86,46 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]>  {
         
     } 
     private void logrqPacketProccess (byte[] packet){
-        
+        String username = getNameFromMessage(packet);
+        if (this.connections.isUsernameLoggedIn(username)){
+            this.connections.send(connectionId, generateERROR(7));
+        }
+        else{
+            this.connections.connect(connectionId, this.connectionHandler);
+            this.connections.registerUsername(connectionId, username);
+            this.connections.send(connectionId, generateACK(null));
+        }
     } 
     private void delrqPacketProccess (byte[] packet){
 
     }
     private void discPacketProccess (byte[] packet){
         
-    } 
+    }
 
+    private String byteToString(byte[] message){
+        return new String(message, StandardCharsets.UTF_8);
+    }
+    private String getNameFromMessage(byte[] message){
+        return byteToString(Arrays.copyOfRange(message, 2, message.length));
+    }
+    private byte[] generateACK(byte[] blockNum){
+        byte[] ackPacket = new byte[4];
+        ackPacket[0] = 0;
+        ackPacket[1] = 4;
+        if (blockNum==null || blockNum.length<2){
+            ackPacket[2] = 0;
+            ackPacket[3] = 0;
+        }
+        else{
+            ackPacket[2] = blockNum[0];
+            ackPacket[3] = blockNum[1];
+        }
+        return ackPacket;
+    }
+    private byte[] generateERROR(int errorCode){}
     
+    
+    
+     
 }

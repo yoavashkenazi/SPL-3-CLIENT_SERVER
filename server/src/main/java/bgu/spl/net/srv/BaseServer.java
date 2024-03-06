@@ -3,6 +3,7 @@ package bgu.spl.net.srv;
 import bgu.spl.net.api.BidiMessagingProtocol;
 import bgu.spl.net.api.MessageEncoderDecoder;
 import bgu.spl.net.api.MessagingProtocol;
+import bgu.spl.net.impl.tftp.ConnectionsImpl;
 import bgu.spl.net.impl.tftp.TftpEncoderDecoder;
 import bgu.spl.net.impl.tftp.TftpProtocol;
 
@@ -17,6 +18,7 @@ public abstract class BaseServer<T> implements Server<T> {
     private final Supplier<BidiMessagingProtocol<T>> protocolFactory;
     private final Supplier<MessageEncoderDecoder<T>> encdecFactory;
     private ServerSocket sock;
+    private Connections<T> connections;
 
     public BaseServer(
             int port,
@@ -27,6 +29,7 @@ public abstract class BaseServer<T> implements Server<T> {
         this.protocolFactory = protocolFactory;
         this.encdecFactory = encdecFactory;
 		this.sock = null;
+        this.connections = new ConnectionsImpl<T>();//need to check if the generic is good
     }
 
     @Override
@@ -41,10 +44,11 @@ public abstract class BaseServer<T> implements Server<T> {
 
                 Socket clientSock = serverSock.accept();
 
-                BlockingConnectionHandler<T> handler = new BlockingConnectionHandler<>(
+                BlockingConnectionHandler<T> handler = new BlockingConnectionHandler<T>(
                         clientSock,
                         encdecFactory.get(),
-                        protocolFactory.get());
+                        protocolFactory.get(), 
+                        this.connections);
 
                 execute(handler);
             }

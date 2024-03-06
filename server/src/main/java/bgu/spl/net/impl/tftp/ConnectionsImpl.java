@@ -6,10 +6,16 @@ import bgu.spl.net.srv.ConnectionHandler;
 import bgu.spl.net.srv.Connections;
 
 public class ConnectionsImpl <T> implements Connections <T > {
-    static ConcurrentHashMap<Integer, ConnectionHandler<byte[]>> ids_login = new ConcurrentHashMap<>();
+    int idCounter=0;
+    Object counterLock = new Object();
+    ConcurrentHashMap<Integer, ConnectionHandler<byte[]>> idToConnectionHandler = new ConcurrentHashMap<>();
+    ConcurrentHashMap<Integer,String> idToUsername = new ConcurrentHashMap<>();
+    // ConcurrentHashMap<String, Integer> usernameToID = new ConcurrentHashMap<>();
+
+
 
     @Override
-    public void connect(int connectionId, ConnectionHandler<T> handler) {
+    public boolean connect(int connectionId, ConnectionHandler<T> handler) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'connect'");
     }
@@ -23,6 +29,21 @@ public class ConnectionsImpl <T> implements Connections <T > {
     @Override
     public void disconnect(int connectionId) {
         // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'disconnect'");
+        this.idToConnectionHandler.remove(connectionId);
+        this.idToUsername.remove(connectionId);
+    }
+
+    public int allocateId(){
+        synchronized(this.counterLock){
+            return this.idCounter++;
+        }
+    }
+
+    public boolean isUsernameLoggedIn(String username){
+        return this.idToUsername.contains(username);
+    }
+
+    public void registerUsername(int connectionId, String username){
+        idToUsername.put(connectionId, username);
     }
 }
