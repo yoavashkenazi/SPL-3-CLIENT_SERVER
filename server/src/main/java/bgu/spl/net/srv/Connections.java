@@ -15,4 +15,6 @@ public interface Connections<T> {
     public boolean isUsernameLoggedIn(String username);
 
     public void registerUsername(int connectionId, String username);
+
+    public boolean isClientConnected(int connectionId);
 }

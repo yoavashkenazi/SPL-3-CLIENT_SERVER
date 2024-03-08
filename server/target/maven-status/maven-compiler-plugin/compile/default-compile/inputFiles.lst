@@ -1,12 +1,12 @@
 /workspaces/spl-3/server/src/main/java/bgu/spl/net/impl/tftp/TestClient.java
 /workspaces/spl-3/server/src/main/java/bgu/spl/net/api/BidiMessagingProtocol.java
 /workspaces/spl-3/server/src/main/java/bgu/spl/net/srv/Connections.java
-/workspaces/spl-3/server/src/main/java/bgu/spl/net/api/MessageEncoderDecoder.java
 /workspaces/spl-3/server/src/main/java/bgu/spl/net/impl/echo/EchoProtocol.java
+/workspaces/spl-3/server/src/main/java/bgu/spl/net/api/MessageEncoderDecoder.java
 /workspaces/spl-3/server/src/main/java/bgu/spl/net/impl/echo/EchoClient.java
 /workspaces/spl-3/server/src/main/java/bgu/spl/net/impl/tftp/ConnectionsImpl.java
-/workspaces/spl-3/server/src/main/java/bgu/spl/net/impl/rci/RCIClient.java
 /workspaces/spl-3/server/src/main/java/bgu/spl/net/impl/tftp/TftpServer.java
+/workspaces/spl-3/server/src/main/java/bgu/spl/net/impl/rci/RCIClient.java
 /workspaces/spl-3/server/src/main/java/bgu/spl/net/impl/newsfeed/NewsFeedServerMain.java
 /workspaces/spl-3/server/src/main/java/bgu/spl/net/srv/ConnectionHandler.java
 /workspaces/spl-3/server/src/main/java/bgu/spl/net/srv/Server.java
