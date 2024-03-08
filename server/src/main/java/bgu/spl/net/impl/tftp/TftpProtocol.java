@@ -30,6 +30,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     // queues to aggregate the data packets
     private Queue<byte[]> fileChunksToSend;
     private Queue<byte[]> fileChunksReceived;
+    private String fileRecivedName;
 
     @Override
     public void start(int connectionId, Connections<byte[]> connections, ConnectionHandler<byte[]> connectionHandler) {
@@ -52,6 +53,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
             this.connections.send(this.connectionId, this.generateERROR(ERROR_TYPE.USER_NOT_LOGGED_IN));
             return;
         }
+        // if user is logged in, proccesses the message by it type.
         switch (opcode) {
             case RRQ:
                 this.rrqPacketProccess(message);
@@ -94,10 +96,14 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     // Proccessing of each packet type
 
     private void rrqPacketProccess(byte[] packet) throws IOException {
+        // gets the name of the requested file
         String fileName = getNameFromMessage(packet);
+        //if the file doesnt exist, sends error
         if (!isFileInFolder(fileName)) {
             this.connections.send(connectionId, generateERROR(ERROR_TYPE.FILE_NOT_FOUND));
-        } else {
+        } 
+        else {
+            //splits the file data into DATA packets and sends the first packet
             this.fileChunksToSend = splitFileIntoPackets("./server/Flies/" + fileName, 512);
             if (this.fileChunksToSend != null && !this.fileChunksToSend.isEmpty()) {
                 connections.send(connectionId, this.fileChunksToSend.remove());
@@ -106,27 +112,39 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     }
 
     private void wrqPacketProccess(byte[] packet) {
-        String fileName = getNameFromMessage(packet);
-        if (isFileInFolder(fileName)) {
+        // gets the name of the requested file
+        this.fileRecivedName = getNameFromMessage(packet);
+        //if the file name already exist, sends error
+        if (isFileInFolder(this.fileRecivedName)) {
             this.connections.send(connectionId, generateERROR(ERROR_TYPE.FILE_EXISTS));
-        } else {
+        } 
+        // else, sends the ACK packet and creates the queue that will hold the incoming DATA packets 
+        else {
             this.connections.send(connectionId, generateACK(null));
             this.fileChunksReceived = new ConcurrentLinkedQueue<>();
         }
     }
 
-    private void dataPacketProccess(byte[] packet) {
+    private void dataPacketProccess(byte[] packet) throws IOException {
+        // adding the packet to the queue
         this.fileChunksReceived.add(packet);
         ByteBuffer buffer = ByteBuffer.allocate(2);
         buffer.putShort((short) this.fileChunksReceived.size());
+        // sending the ACK packet
         this.connections.send(connectionId, generateACK(buffer.array()));
-        if () {
-            // make file from queue
+        // if this is the last data packet of the file, saves it to the directory.
+        if (packet.length < 518) {
+            // making the file from the queue of DATA packets
+            byte[] fileData = concatPacketsToByteArray(fileChunksReceived);
+            //saving the file
+            Path filePath = Paths.get("./server/Flies/", this.fileRecivedName);
+            Files.write(filePath, fileData);
         }
 
     }
 
     private void ackPacketProccess(byte[] packet) {
+        // if there are more packets to send, sends the next one. 
         if (getACKBlockNum(packet) > 0 && this.fileChunksToSend != null && !this.fileChunksToSend.isEmpty()) {
             connections.send(connectionId, this.fileChunksToSend.remove());
         }
@@ -138,11 +156,15 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
     private void logrqPacketProccess(byte[] packet) {
         String username = getNameFromMessage(packet);
+        // if the user name is already taken, sends error
         if (this.connections.isUsernameLoggedIn(username)) {
             this.connections.send(connectionId, generateERROR(ERROR_TYPE.USER_ALREADY_LOGGED_IN));
-        } else {
+        } 
+        // if the user name is available, connects the client and register the user name
+        else {
             this.connections.connect(connectionId, this.connectionHandler);
             this.connections.registerUsername(connectionId, username);
+            //sends ACK packet
             this.connections.send(connectionId, generateACK(null));
         }
     }
@@ -170,14 +192,19 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         return (short) (((short) message[2]) << 8 | (short) (message[3]) & 0x00ff);
     }
 
+    //returns the name of the file/username from the packet
     private String getNameFromMessage(byte[] message) {
         return byteToString(Arrays.copyOfRange(message, 2, message.length));
     }
 
+    /**
+     * generates the appropriate ACK packet
+     */
     private byte[] generateACK(byte[] blockNum) {
         byte[] ackPacket = new byte[4];
         ackPacket[0] = 0;
         ackPacket[1] = 4;
+        // if the ACK is not for DATA packet
         if (blockNum == null || blockNum.length < 2) {
             ackPacket[2] = 0;
             ackPacket[3] = 0;
@@ -188,7 +215,10 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         return ackPacket;
     }
 
-    private byte[] generateERROR(ERROR_TYPE errorType) {
+    /**
+     * generates the appropriate ERROR packet
+    */
+     private byte[] generateERROR(ERROR_TYPE errorType) {
         String message = "";
         byte errorCode = 0;
         switch (errorType) {
@@ -251,6 +281,9 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         return false;
     }
 
+    /**
+     * returns a queue of DATA packets of the file
+     */
     public static Queue<byte[]> splitFileIntoPackets(String filePath, int packetSize) throws IOException {
         Queue<byte[]> packets = new LinkedList<>();
         Path file = Paths.get(filePath);
@@ -319,5 +352,45 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
                 return allValues[0];
             }
         }
+    }
+
+    /**
+     * Concatenates data packets into a byte array.
+     *
+     * @param packets The queue of data packets.
+     * @return The concatenated byte array.
+     */
+    public static byte[] concatPacketsToByteArray(Queue<byte[]> packets) {
+        int totalSize = calculateTotalSize(packets);
+        ByteBuffer buffer = ByteBuffer.allocate(totalSize);
+
+        while (!packets.isEmpty()) {
+            byte[] packet = packets.poll();
+
+            // Skip empty packets
+            if (packet.length > 6) {
+                extractDataFromPacket(packet, buffer);
+            }
+        }
+
+        return buffer.array();
+    }
+
+    private static int calculateTotalSize(Queue<byte[]> packets) {
+        int totalSize = 0;
+
+        for (byte[] packet : packets) {
+            // Exclude the 6 bytes for headers if the packet is not empty
+            if (packet.length > 6) {
+                totalSize += packet.length - 6;
+            }
+        }
+
+        return totalSize;
+    }
+
+    private static void extractDataFromPacket(byte[] packet, ByteBuffer buffer) {
+        // Skip the first 6 bytes (headers) and copy the rest to the buffer
+        buffer.put(packet, 6, packet.length - 6);
     }
 }
