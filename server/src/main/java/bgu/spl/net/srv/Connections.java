@@ -18,5 +18,5 @@ public interface Connections<T> {
 
     public boolean isClientConnected(int connectionId);
 
-    public void broadcast (byte[] BCASTPacket);
+    public void broadcast (T BCASTPacket);
 }
