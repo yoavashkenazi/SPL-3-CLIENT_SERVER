@@ -49,4 +49,11 @@ public class ConnectionsImpl<T> implements Connections<T> {
     public boolean isClientConnected(int connectionId) {
         return this.idToConnectionHandler.containsKey(connectionId);
     }
+
+    public void broadcast (T BCASTPacket){
+        for (Integer connectionId : this.idToConnectionHandler.keySet()) {
+            this.send(connectionId, BCASTPacket);
+        }
+    }
+
 }

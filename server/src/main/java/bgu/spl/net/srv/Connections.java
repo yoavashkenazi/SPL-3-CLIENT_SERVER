@@ -17,4 +17,6 @@ public interface Connections<T> {
     public void registerUsername(int connectionId, String username);
 
     public boolean isClientConnected(int connectionId);
+
+    public void broadcast (byte[] BCASTPacket);
 }

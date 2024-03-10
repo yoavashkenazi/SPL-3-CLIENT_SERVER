@@ -132,13 +132,15 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         buffer.putShort((short) this.fileChunksReceived.size());
         // sending the ACK packet
         this.connections.send(connectionId, generateACK(buffer.array()));
-        // if this is the last data packet of the file, saves it to the directory.
+        // if this is the last data packet of the file, saves it to the directory and send BCAST.
         if (packet.length < 518) {
             // making the file from the queue of DATA packets
             byte[] fileData = concatPacketsToByteArray(fileChunksReceived);
             //saving the file
             Path filePath = Paths.get("./server/Flies/", this.fileRecivedName);
             Files.write(filePath, fileData);
+            //sending BCAST packet to all connected clients.
+            this.connections.broadcast(this.generateBCAST(1, this.fileRecivedName));
         }
 
     }
@@ -393,4 +395,26 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         // Skip the first 6 bytes (headers) and copy the rest to the buffer
         buffer.put(packet, 6, packet.length - 6);
     }
-}
+
+    /**
+     * Generates a BCAST packet.
+     *
+     * @param indicator An indicator value.
+     * @param fileName  The file name.
+     * @return A BCAST packet as a byte array.
+     */
+    private byte[] generateBCAST(int indicator, String fileName) {
+        // Convert the fileName to UTF-8 bytes
+        byte[] fileNameBytes = fileName.getBytes(StandardCharsets.UTF_8);
+        // Create a byte array to hold the BCAST packet
+        byte[] bcastPacket = new byte[3 + fileNameBytes.length + 1];
+        // Populate the BCAST packet
+        bcastPacket[0] = 0;
+        bcastPacket[1] = 9;
+        bcastPacket[2] = (byte) indicator;
+        // Copy the fileNameBytes to the packet
+        System.arraycopy(fileNameBytes, 0, bcastPacket, 3, fileNameBytes.length);
+        // Add a 0 byte after the fileName
+        bcastPacket[bcastPacket.length - 1] = 0;
+        return bcastPacket;
+    }}
