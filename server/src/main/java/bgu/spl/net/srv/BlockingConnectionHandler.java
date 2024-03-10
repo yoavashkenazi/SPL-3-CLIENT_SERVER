@@ -2,6 +2,8 @@ package bgu.spl.net.srv;
 
 import bgu.spl.net.api.BidiMessagingProtocol;
 import bgu.spl.net.api.MessageEncoderDecoder;
+import bgu.spl.net.impl.tftp.UsersHolder;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.IOException;
@@ -38,7 +40,7 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
             int read;
             in = new BufferedInputStream(sock.getInputStream());
             out = new BufferedOutputStream(sock.getOutputStream());
-            this.connectionId = connections.allocateId();
+            this.connectionId = UsersHolder.allocateId();
             this.protocol.start(this.connectionId, connections, this);
 
             while (!protocol.shouldTerminate() && connected && (in.available() > 0 || packetsToWrite.size() > 0)) {
