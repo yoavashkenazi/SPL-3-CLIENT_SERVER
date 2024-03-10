@@ -1,8 +1,8 @@
 package bgu.spl.net.impl.tftp;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
-
-import bgu.spl.net.srv.ConnectionHandler;
 
 public class UsersHolder {
     private static int idCounter = 0;
@@ -19,7 +19,7 @@ public class UsersHolder {
         return idToUsername.contains(username);
     }
 
-    public static void registerUsername(int connectionId, String username) {
+    public static void registerUser(int connectionId, String username) {
         idToUsername.put(connectionId, username);
     }
 
@@ -31,10 +31,7 @@ public class UsersHolder {
         return idToUsername.containsKey(connectionId);
     }
 
-    // to protocol
-    public void broadcast(T BCASTPacket) {
-        for (Integer connectionId : this.idToConnectionHandler.keySet()) {
-            this.send(connectionId, BCASTPacket);
-        }
+    public static ArrayList<Integer> getConnectedUsersIds() {
+        return Collections.list(idToUsername.keys());
     }
 }
