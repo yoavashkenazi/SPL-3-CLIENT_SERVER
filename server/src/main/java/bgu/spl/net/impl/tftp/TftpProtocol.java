@@ -1,5 +1,8 @@
 package bgu.spl.net.impl.tftp;
 
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.lang.reflect.Array;
 import java.nio.ByteBuffer;
@@ -152,8 +155,16 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         }
     }
 
-    private void dirqPacketProccess(byte[] packet) {
+    private void dirqPacketProccess(byte[] packet) throws IOException {
 
+        directoryIntoFile(); 
+        //splits the file data into DATA packets and sends the first packet
+        this.fileChunksToSend = splitFileIntoPackets("./server/Flies/" + "DIRQNAMES", 512);
+        if (this.fileChunksToSend != null && !this.fileChunksToSend.isEmpty()) {
+            connections.send(connectionId, this.fileChunksToSend.remove());
+        }
+        Path filePath = Paths.get("./server/Flies/", "DIRQNAMES");
+        Files.delete(filePath);
     }
 
     private void logrqPacketProccess(byte[] packet) {
@@ -171,7 +182,20 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         }
     }
 
-    private void delrqPacketProccess(byte[] packet) {
+    private void delrqPacketProccess(byte[] packet) throws IOException {
+        // gets the name of the requested file
+        String fileToDeleteName = getNameFromMessage(packet);
+        //if the file doesnt exist, sends error
+        if (!isFileInFolder(fileToDeleteName)) {
+            this.connections.send(connectionId, generateERROR(ERROR_TYPE.FILE_NOT_FOUND));
+        }
+        else{
+            //delets the file and sends ACK, BCAST
+            Path filePath = Paths.get("./server/Flies/", fileToDeleteName);
+            Files.delete(filePath);
+            this.connections.send(connectionId, generateACK(null));
+            this.connections.broadcast(generateBCAST(1, fileToDeleteName));
+        }
 
     }
 
@@ -417,4 +441,35 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         // Add a 0 byte after the fileName
         bcastPacket[bcastPacket.length - 1] = 0;
         return bcastPacket;
-    }}
+    }
+
+    private void directoryIntoFile() throws IOException{
+        // Create a File object representing the specified directory path
+        File directory = new File("./server/Flies/");
+
+        // Create a File object for the output file in the specified directory
+        File outputFile = new File(directory, "DIRQNAMES");
+
+        // Use try-with-resources to ensure proper resource management (closes the writer automatically)
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
+            // Retrieve an array of File objects representing the files in the directory
+            File[] files = directory.listFiles();
+            // Check if any files were found in the directory
+            if (files != null) {
+                // Iterate through the files in the directory
+                for (int i = 0; i < files.length; i++) {
+                    // Get the name of the current file
+                    String fileNameStr = files[i].getName();
+                    // Write the file name to the output file
+                    writer.write(fileNameStr);
+                    // Separate file names with a 0 byte, except for the last file name
+                    if (i < files.length - 1) {
+                        writer.write((char) 0);
+                    }
+                }
+            }
+        }
+    }
+}
+
+    
