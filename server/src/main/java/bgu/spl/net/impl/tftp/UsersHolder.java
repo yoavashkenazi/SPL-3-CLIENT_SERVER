@@ -9,7 +9,7 @@ public class UsersHolder {
     private static Object counterLock = new Object();
     private static ConcurrentHashMap<Integer, String> idToUsername = new ConcurrentHashMap<>();
 
-    public int allocateId() {
+    public static int allocateId() {
         synchronized (counterLock) {
             return idCounter++;
         }

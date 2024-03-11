@@ -52,7 +52,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         // TODO implement this
         OpCode opcode = OpCode.fromOrdinal(message[1]);
         // check if user logged in
-        if (opcode != OpCode.LOGRQ && !this.connections.isClientConnected(this.connectionId)) {
+        if (opcode != OpCode.LOGRQ && !UsersHolder.isClientConnected(this.connectionId)) {
             this.connections.send(this.connectionId, this.generateERROR(ERROR_TYPE.USER_NOT_LOGGED_IN));
             return;
         }
