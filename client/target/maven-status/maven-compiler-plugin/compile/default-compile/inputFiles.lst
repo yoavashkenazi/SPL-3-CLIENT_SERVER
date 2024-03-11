@@ -1,0 +1,9 @@
+/workspaces/spl-3/client/src/main/java/bgu/spl/net/impl/tftp/TftpClientProtocol.java
+/workspaces/spl-3/client/src/main/java/bgu/spl/net/impl/tftp/TftpClient.java
+/workspaces/spl-3/client/src/main/java/bgu/spl/net/impl/echo/LineMessageEncoderDecoder.java
+/workspaces/spl-3/client/src/main/java/bgu/spl/net/impl/tftp/TftpClientEncoderDecoder.java
+/workspaces/spl-3/client/src/main/java/bgu/spl/net/api/MessageEncoderDecoder.java
+/workspaces/spl-3/client/src/main/java/bgu/spl/net/impl/echo/EchoProtocol.java
+/workspaces/spl-3/client/src/main/java/bgu/spl/net/impl/echo/EchoClient.java
+/workspaces/spl-3/client/src/main/java/bgu/spl/net/api/MessagingProtocol.java
+/workspaces/spl-3/client/src/main/java/bgu/spl/net/impl/tftp/InputThread.java
