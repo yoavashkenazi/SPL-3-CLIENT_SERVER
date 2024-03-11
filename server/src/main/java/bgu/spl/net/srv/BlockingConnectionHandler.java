@@ -48,22 +48,25 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
                 //System.out.println("CH after first while");
                 // write if there is packets to write
                 while (!protocol.shouldTerminate() && connected && !packetsToWrite.isEmpty()) {
-                    System.out.println("CH before write");
+                    System.out.println("CH before write: ");
+                    System.out.println(Arrays.toString(packetsToWrite.peek()));
                     out.write(packetsToWrite.poll());
-                    System.out.println("CH after write");
                     out.flush();
+                    System.out.println("CH after write");
                 }
                //System.out.println("CH after while");
                 if (in.available() > 0) {
-                    System.out.println("CH after avialable if");
+                    //System.out.println("CH after avialable if");
                     read = in.read();
-                    System.out.println("CH after in.read");
+                    //System.out.println("CH after in.read");
                     T nextMessage = encdec.decodeNextByte((byte) read);
                     if (nextMessage != null) {
                         System.out.println(Arrays.toString((byte[]) nextMessage));
                         protocol.process(nextMessage);
-                        if (this.protocol.shouldTerminate()&&!packetsToWrite.isEmpty()){
-                            out.write(packetsToWrite.poll());
+                        // if DISC Packet was received
+                        if (this.protocol.shouldTerminate()){
+                            byte[] discAckPacket = new byte[]{0,4,0,0};
+                            out.write(discAckPacket);
                             out.flush();
                         }
                     }

@@ -134,13 +134,16 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     private void dataPacketProccess(byte[] packet) throws IOException {
         // adding the packet to the queue
         this.fileChunksReceived.add(packet);
-        ByteBuffer buffer = ByteBuffer.allocate(2);
-        buffer.putShort((short) this.fileChunksReceived.size());
+        byte[] blockNum = new byte[2];
+        blockNum[0] = packet[4];
+        blockNum[1] = packet[5];
         // sending the ACK packet
-        this.connections.send(connectionId, generateACK(buffer.array()));
+        this.connections.send(connectionId, generateACK(blockNum));
+        System.out.println("sending ack packet number: "+ (blockNum[0]*256 + (blockNum[1]& 0xFF)));
         // if this is the last data packet of the file, saves it to the directory and
         // send BCAST.
         if (packet.length < 518) {
+            System.out.println("data packet is smaller than 518 " + packet.length);
             // making the file from the queue of DATA packets
             byte[] fileData = concatPacketsToByteArray(fileChunksReceived);
             // saving the file
@@ -171,7 +174,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     private void logrqPacketProccess(byte[] packet) {
         String username = getNameFromMessage(packet);
         // if the user name is already taken, sends error
-        if (UsersHolder.isUsernameLoggedIn(username)) {
+        if (UsersHolder.isUsernameLoggedIn(username)||UsersHolder.isClientConnected(this.connectionId)) {
             this.connections.send(connectionId, generateERROR(ERROR_TYPE.USER_ALREADY_LOGGED_IN));
         }
         // if the user name is available, connects the client and register the user name
@@ -193,7 +196,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
             Path filePath = Paths.get(this.dirPath, fileToDeleteName);
             Files.delete(filePath);
             this.connections.send(connectionId, generateACK(null));
-            this.broadcast(generateBCAST(1, fileToDeleteName));
+            this.broadcast(generateBCAST(0, fileToDeleteName));
         }
 
     }
@@ -201,7 +204,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     private void discPacketProccess(byte[] packet) {
         // sending ACK
         System.out.println("discPacketProccess");
-        this.connections.send(this.connectionId, generateACK(null));
+        //this.connections.send(this.connectionId, generateACK(null)); remove thie line
         // removing the client from the maps
         this.connections.disconnect(this.connectionId);
         // remove from the UserHolder
@@ -289,13 +292,12 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         }
 
         byte[] message_bytes = message.getBytes(StandardCharsets.UTF_8);
-        byte[] result = new byte[5 + message_bytes.length];
+        byte[] result = new byte[4 + message_bytes.length];
         result[0] = 0;
         result[1] = (byte) 5;
         result[2] = 0;
         result[3] = errorCode;
         System.arraycopy(message_bytes, 0, result, 4, message_bytes.length);
-        result[result.length - 1] = 0;
         System.out.println(Arrays.toString(result));
         return result;
     }
@@ -435,7 +437,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         // Convert the fileName to UTF-8 bytes
         byte[] fileNameBytes = fileName.getBytes(StandardCharsets.UTF_8);
         // Create a byte array to hold the BCAST packet
-        byte[] bcastPacket = new byte[3 + fileNameBytes.length + 1];
+        byte[] bcastPacket = new byte[3 + fileNameBytes.length];
         // Populate the BCAST packet
         bcastPacket[0] = 0;
         bcastPacket[1] = 9;
@@ -443,7 +445,6 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         // Copy the fileNameBytes to the packet
         System.arraycopy(fileNameBytes, 0, bcastPacket, 3, fileNameBytes.length);
         // Add a 0 byte after the fileName
-        bcastPacket[bcastPacket.length - 1] = 0;
         return bcastPacket;
     }
 
@@ -484,7 +485,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     public void broadcast(byte[] BCASTPacket) {
         // sends bcast message to all connected clients
         for (Integer connectionId : UsersHolder.getConnectedUsersIds()) {
-            connections.send(connectionId, BCASTPacket);
+            this.connections.send(connectionId, BCASTPacket);
         }
     }
 }
