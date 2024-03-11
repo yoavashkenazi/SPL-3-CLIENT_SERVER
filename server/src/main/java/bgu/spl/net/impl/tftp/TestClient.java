@@ -23,7 +23,7 @@ public class TestClient {
         }
         System.out.println("client started");
         // BufferedReader and BufferedWriter automatically using UTF-8 encoding
-        try (Socket sock = new Socket("127.0.0.1", 7777);
+        try (Socket sock = new Socket("localhost", 7777);
                 BufferedReader in = new BufferedReader(new InputStreamReader(sock.getInputStream()));
                 BufferedOutputStream out = new BufferedOutputStream(sock.getOutputStream())) {
             out.write(new byte[] { 0, 1, 9, 78, 10, 0 });

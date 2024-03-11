@@ -42,22 +42,34 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
             out = new BufferedOutputStream(sock.getOutputStream());
             this.connectionId = UsersHolder.allocateId();
             this.protocol.start(this.connectionId, connections, this);
-
-            while (!protocol.shouldTerminate() && connected && (in.available() > 0 || packetsToWrite.size() > 0)) {
+            this.connections.connect(connectionId, this);
+            //System.out.println("CH before while");
+            while (!protocol.shouldTerminate() && connected) {
+                //System.out.println("CH after first while");
                 // write if there is packets to write
-                while (protocol.shouldTerminate() && connected && !packetsToWrite.isEmpty()) {
+                while (!protocol.shouldTerminate() && connected && !packetsToWrite.isEmpty()) {
+                    System.out.println("CH before write");
                     out.write(packetsToWrite.poll());
+                    System.out.println("CH after write");
                     out.flush();
                 }
+               //System.out.println("CH after while");
                 if (in.available() > 0) {
+                    System.out.println("CH after avialable if");
                     read = in.read();
+                    System.out.println("CH after in.read");
                     T nextMessage = encdec.decodeNextByte((byte) read);
                     if (nextMessage != null) {
                         System.out.println(Arrays.toString((byte[]) nextMessage));
                         protocol.process(nextMessage);
+                        if (this.protocol.shouldTerminate()&&!packetsToWrite.isEmpty()){
+                            out.write(packetsToWrite.poll());
+                            out.flush();
+                        }
                     }
                 }
             }
+            System.out.println("after big while");
 
         } catch (IOException ex) {
             ex.printStackTrace();

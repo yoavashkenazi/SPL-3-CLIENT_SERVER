@@ -67,7 +67,7 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
     @Override
     public byte[] encode(byte[] message) {
         //TODO: implement this
-        OpCode encodeOpcode = OpCode.valueOf(String.valueOf(message[1]));
+        OpCode encodeOpcode = OpCode.fromOrdinal(message[1]);
         switch (encodeOpcode) {
             case ERROR:
             case BCAST:

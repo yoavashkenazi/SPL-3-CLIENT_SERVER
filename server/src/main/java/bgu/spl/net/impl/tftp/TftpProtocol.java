@@ -34,6 +34,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     private Queue<byte[]> fileChunksToSend;
     private Queue<byte[]> fileChunksReceived;
     private String fileRecivedName;
+    private final String dirPath = "./Flies/";
 
     @Override
     public void start(int connectionId, Connections<byte[]> connections, ConnectionHandler<byte[]> connectionHandler) {
@@ -53,9 +54,11 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         OpCode opcode = OpCode.fromOrdinal(message[1]);
         // check if user logged in
         if (opcode != OpCode.LOGRQ && !UsersHolder.isClientConnected(this.connectionId)) {
+            System.out.println("error unlogged user");
             this.connections.send(this.connectionId, this.generateERROR(ERROR_TYPE.USER_NOT_LOGGED_IN));
             return;
         }
+        System.out.println("protocol proccess, before switch, opcode: " + opcode);
         // if user is logged in, proccesses the message by it type.
         switch (opcode) {
             case RRQ:
@@ -93,7 +96,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         // this.connections.disconnect(this.connectionId);
         // //holder stuff
         // return shouldTerminate;
-        return false;
+        return this.shouldTerminate;
     }
 
     // Proccessing of each packet type
@@ -106,7 +109,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
             this.connections.send(connectionId, generateERROR(ERROR_TYPE.FILE_NOT_FOUND));
         } else {
             // splits the file data into DATA packets and sends the first packet
-            this.fileChunksToSend = splitFileIntoPackets("./server/Flies/" + fileName, 512);
+            this.fileChunksToSend = splitFileIntoPackets(this.dirPath + fileName, 512);
             if (this.fileChunksToSend != null && !this.fileChunksToSend.isEmpty()) {
                 connections.send(connectionId, this.fileChunksToSend.remove());
             }
@@ -141,7 +144,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
             // making the file from the queue of DATA packets
             byte[] fileData = concatPacketsToByteArray(fileChunksReceived);
             // saving the file
-            Path filePath = Paths.get("./server/Flies/", this.fileRecivedName);
+            Path filePath = Paths.get(this.dirPath, this.fileRecivedName);
             Files.write(filePath, fileData);
             // sending BCAST packet to all connected clients.
             this.broadcast(this.generateBCAST(1, this.fileRecivedName));
@@ -158,14 +161,11 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
     private void dirqPacketProccess(byte[] packet) throws IOException {
 
-        directoryIntoFile();
         // splits the file data into DATA packets and sends the first packet
-        this.fileChunksToSend = splitFileIntoPackets("./server/Flies/" + "DIRQNAMES", 512);
+        this.fileChunksToSend = directoryIntoFile();
         if (this.fileChunksToSend != null && !this.fileChunksToSend.isEmpty()) {
             connections.send(connectionId, this.fileChunksToSend.remove());
         }
-        Path filePath = Paths.get("./server/Flies/", "DIRQNAMES");
-        Files.delete(filePath);
     }
 
     private void logrqPacketProccess(byte[] packet) {
@@ -176,7 +176,6 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         }
         // if the user name is available, connects the client and register the user name
         else {
-            this.connections.connect(connectionId, this.connectionHandler);
             UsersHolder.registerUser(connectionId, username);
             // sends ACK packet
             this.connections.send(connectionId, generateACK(null));
@@ -191,7 +190,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
             this.connections.send(connectionId, generateERROR(ERROR_TYPE.FILE_NOT_FOUND));
         } else {
             // delets the file and sends ACK, BCAST
-            Path filePath = Paths.get("./server/Flies/", fileToDeleteName);
+            Path filePath = Paths.get(this.dirPath, fileToDeleteName);
             Files.delete(filePath);
             this.connections.send(connectionId, generateACK(null));
             this.broadcast(generateBCAST(1, fileToDeleteName));
@@ -201,6 +200,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
 
     private void discPacketProccess(byte[] packet) {
         // sending ACK
+        System.out.println("discPacketProccess");
         this.connections.send(this.connectionId, generateACK(null));
         // removing the client from the maps
         this.connections.disconnect(this.connectionId);
@@ -293,13 +293,15 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         result[0] = 0;
         result[1] = (byte) 5;
         result[2] = 0;
-        result[1] = errorCode;
+        result[3] = errorCode;
+        System.arraycopy(message_bytes, 0, result, 4, message_bytes.length);
         result[result.length - 1] = 0;
+        System.out.println(Arrays.toString(result));
         return result;
     }
 
-    public static boolean isFileInFolder(String fileName) {
-        Path folder = Paths.get("/server/Flies");
+    public boolean isFileInFolder(String fileName) {
+        Path folder = Paths.get(this.dirPath);
         Path fileToSearch = folder.resolve(fileName);
 
         if (Files.exists(fileToSearch) && Files.isRegularFile(fileToSearch)) {
@@ -353,7 +355,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         // Use ByteBuffer for efficient manipulation of byte arrays
         ByteBuffer buffer = ByteBuffer.allocate(packetSize);
         buffer.put((byte) 0); // Start byte
-        buffer.putInt(3); // 3-byte header
+        buffer.put((byte) 3); // 3-byte header
         buffer.putShort((short) packetData.length); // Size of data
         buffer.putShort((short) blockNumber); // Block number
         buffer.put(packetData); // Data
@@ -445,18 +447,18 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         return bcastPacket;
     }
 
-    private void directoryIntoFile() throws IOException {
+    private Queue<byte[]> directoryIntoFile() throws IOException {
         // Create a File object representing the specified directory path
-        File directory = new File("./server/Flies/");
-
+        File directory = new File(this.dirPath);
+        // Retrieve an array of File objects representing the files in the directory
+        File[] files = directory.listFiles();
         // Create a File object for the output file in the specified directory
         File outputFile = new File(directory, "DIRQNAMES");
 
         // Use try-with-resources to ensure proper resource management (closes the
         // writer automatically)
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
-            // Retrieve an array of File objects representing the files in the directory
-            File[] files = directory.listFiles();
+            
             // Check if any files were found in the directory
             if (files != null) {
                 // Iterate through the files in the directory
@@ -472,6 +474,10 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
                 }
             }
         }
+        Queue<byte[]> result = splitFileIntoPackets(this.dirPath + "DIRQNAMES", 512);
+        Path filePath = Paths.get(this.dirPath, "DIRQNAMES");
+        Files.delete(filePath);
+        return result;
     }
 
     // to protocol
