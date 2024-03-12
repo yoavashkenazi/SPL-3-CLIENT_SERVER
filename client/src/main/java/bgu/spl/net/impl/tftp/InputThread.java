@@ -15,7 +15,8 @@ public class InputThread implements Runnable {
     public void run() {
         Scanner sc = new Scanner(System.in); // Create a Scanner object
         while (!protocol.shouldTerminate()) {
-            userInputToProcess.add(sc.nextLine());
+            String input = sc.nextLine();
+            userInputToProcess.add(input);
         }
         sc.close();
     }

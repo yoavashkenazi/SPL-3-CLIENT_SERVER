@@ -29,7 +29,7 @@ public class TftpClient {
             System.exit(1);
         }
         Queue<String> userInputToProcess = new ConcurrentLinkedQueue<String>();
-        try (Socket sock = new Socket(args[0], 7777);
+        try (Socket sock = new Socket(args[0], Integer.parseInt(args[1]));
                 BufferedInputStream in = new BufferedInputStream(sock.getInputStream());
                 BufferedOutputStream out = new BufferedOutputStream(sock.getOutputStream())) {
 
@@ -38,34 +38,35 @@ public class TftpClient {
             int read;
 
             // creates the inputThread and runs it
-            (new InputThread(protocol, userInputToProcess)).run();
+            (new Thread(new InputThread(protocol, userInputToProcess))).start();
 
             while (!protocol.shouldTerminate()) {
                 // process messages from input queue (if there is packets to write)
-                while (!protocol.shouldTerminate() && !userInputToProcess.isEmpty()) {
+                while (!protocol.shouldTerminate() && !userInputToProcess.isEmpty()
+                        && protocol.currentOperation == OpCode.UNKOWN) {
                     byte[] response = protocol.processUserInput(userInputToProcess.poll());
                     if (response != null) {
-                        System.out.println("CH before write");
+                        // System.out.println("CH before write");
                         out.write(encdec.encode(response));
                         out.flush();
-                        System.out.println("CH after write");
+                        // System.out.println("CH after write");
                     }
                 }
 
                 // read
                 if (in.available() > 0) {
-                    System.out.println("CH after avialable if");
+                    // System.out.println("CH after avialable if");
                     read = in.read();
-                    System.out.println("CH after in.read");
+                    // System.out.println("CH after in.read");
                     byte[] nextMessage = encdec.decodeNextByte((byte) read);
                     if (nextMessage != null) {
                         System.out.println(Arrays.toString((byte[]) nextMessage));
                         byte[] response = protocol.process(nextMessage);
                         if (response != null) {
-                            System.out.println("CH before write");
+                            // System.out.println("CH before write");
                             out.write(encdec.encode(response));
                             out.flush();
-                            System.out.println("CH after write");
+                            // System.out.println("CH after write");
                         }
                     }
                 }

@@ -56,6 +56,18 @@ public class TftpClientEncoderDecoder implements MessageEncoderDecoder<byte[]> {
                         return popPacket();
                     }
                     break;
+                case ERROR:
+                    if (len >= 4 && nextByte == 0) {
+                        pushByte(nextByte);
+                        return popPacket();
+                    }
+                    break;
+                case BCAST:
+                    if (len >= 3 && nextByte == 0) {
+                        pushByte(nextByte);
+                        return popPacket();
+                    }
+                    break;
                 default:
                     break;
             }
@@ -69,7 +81,11 @@ public class TftpClientEncoderDecoder implements MessageEncoderDecoder<byte[]> {
         // TODO: implement this
         OpCode encodeOpcode = OpCode.fromOrdinal(message[1]);
         switch (encodeOpcode) {
+            case RRQ:
+            case WRQ:
             case ERROR:
+            case LOGRQ:
+            case DELRQ:
             case BCAST:
                 byte[] output = Arrays.copyOf(message, message.length + 1);
                 output[output.length - 1] = 0;

@@ -21,7 +21,7 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
     private String readFileName;
     private String writeFileName;
     private final String dirPath = "./";
-    private OpCode currentOperation = OpCode.UNKOWN;
+    public OpCode currentOperation = OpCode.UNKOWN;
 
     public byte[] process(byte[] message) {
         // TODO implement this
@@ -53,6 +53,7 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
 
     public byte[] processUserInput(String input) {
         // process user input and return the appopriate byte array
+        System.out.println("user input: " + input);
         String opcodeStr = "";
         try {
             opcodeStr = input.split(" ")[0];
@@ -193,7 +194,7 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
     }
 
     private byte[] processRRQPacket(String userInput) {
-        String fileName = userInput.split(" ")[1];
+        String fileName = userInput.split(" ", 2)[1];
         if (isFileInFolder(fileName)) {
             System.out.println("File already exists");
             return null;
@@ -215,7 +216,7 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
     private byte[] processWRQPacket(String userInput) {
 
         // creates the packet
-        String fileName = userInput.split(" ")[1];
+        String fileName = userInput.split(" ", 2)[1];
         byte[] fileNameInBytes = fileName.getBytes(StandardCharsets.UTF_8);
         byte[] packet = new byte[2 + fileNameInBytes.length];
         packet[0] = 0;
@@ -241,7 +242,7 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
 
     private byte[] processLOGRQPacket(String userInput) {
         this.currentOperation = OpCode.LOGRQ;
-        String username = userInput.split(" ")[1];
+        String username = userInput.split(" ", 2)[1];
         byte[] usernameInBytes = username.getBytes(StandardCharsets.UTF_8);
         byte[] packet = new byte[2 + usernameInBytes.length];
         packet[0] = 0;
@@ -252,7 +253,7 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
 
     private byte[] processDELRQPacket(String userInput) {
         this.currentOperation = OpCode.DELRQ;
-        String fileName = userInput.split(" ")[1];
+        String fileName = userInput.split(" ", 2)[1];
         byte[] fileNameInBytes = fileName.getBytes(StandardCharsets.UTF_8);
         byte[] packet = new byte[2 + fileNameInBytes.length];
         packet[0] = 0;
@@ -390,33 +391,5 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
         } catch (UnsupportedEncodingException e) {
         }
 
-    }
-
-}
-
-/**
- * enum representing the opcode of the packet
- */
-enum OpCode {
-    UNKOWN,
-    RRQ,
-    WRQ,
-    DATA,
-    ACK,
-    ERROR,
-    DIRQ,
-    LOGRQ,
-    DELRQ,
-    BCAST,
-    DISC;
-
-    private static OpCode[] allValues = values();
-
-    public static OpCode fromOrdinal(int n) {
-        try {
-            return allValues[n];
-        } catch (Exception ex) {
-            return allValues[0];
-        }
     }
 }
