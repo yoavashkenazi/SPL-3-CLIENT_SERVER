@@ -26,8 +26,6 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
     public byte[] process(byte[] message) {
         // TODO implement this
         OpCode opcode = OpCode.fromOrdinal(message[1]);
-        System.out.println("client protocol proccess, before switch, opcode: " + opcode);
-
         switch (opcode) {
             case DATA:
                 return processData(message);
@@ -167,6 +165,7 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                     Path filePath = Paths.get(this.dirPath, this.readFileName);
                     try {
                         Files.write(filePath, fileData);
+                        System.out.println("RRQ " + this.readFileName + " complete");
                     } catch (Exception e) {
                     }
                     break;

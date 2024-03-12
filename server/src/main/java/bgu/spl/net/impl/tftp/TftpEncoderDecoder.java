@@ -45,7 +45,6 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
                     if (len == 3){
                         short b_short = ( short ) ((( short ) bytes [len-1]) << 8 | ( short ) ( nextByte) );
                         dataPacketSize = (int)b_short;
-                        System.out.println("DATA packet size (in decodenextbyte): " + dataPacketSize);
                     }
                     else if(len == dataPacketSize+5){
                         pushByte(nextByte);

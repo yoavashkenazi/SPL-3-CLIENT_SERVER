@@ -54,11 +54,9 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         OpCode opcode = OpCode.fromOrdinal(message[1]);
         // check if user logged in
         if (opcode != OpCode.LOGRQ && !UsersHolder.isClientConnected(this.connectionId)) {
-            System.out.println("error unlogged user");
             this.connections.send(this.connectionId, this.generateERROR(ERROR_TYPE.USER_NOT_LOGGED_IN));
             return;
         }
-        System.out.println("protocol proccess, before switch, opcode: " + opcode);
         // if user is logged in, proccesses the message by it type.
         switch (opcode) {
             case RRQ:
@@ -139,11 +137,9 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         blockNum[1] = packet[5];
         // sending the ACK packet
         this.connections.send(connectionId, generateACK(blockNum));
-        System.out.println("sending ack packet number: "+ (blockNum[0]*256 + (blockNum[1]& 0xFF)));
         // if this is the last data packet of the file, saves it to the directory and
         // send BCAST.
         if (packet.length < 518) {
-            System.out.println("data packet is smaller than 518 " + packet.length);
             // making the file from the queue of DATA packets
             byte[] fileData = concatPacketsToByteArray(fileChunksReceived);
             // saving the file
@@ -202,9 +198,6 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     }
 
     private void discPacketProccess(byte[] packet) {
-        // sending ACK
-        System.out.println("discPacketProccess");
-        //this.connections.send(this.connectionId, generateACK(null)); remove thie line
         // removing the client from the maps
         this.connections.disconnect(this.connectionId);
         // remove from the UserHolder
@@ -298,7 +291,6 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         result[2] = 0;
         result[3] = errorCode;
         System.arraycopy(message_bytes, 0, result, 4, message_bytes.length);
-        System.out.println(Arrays.toString(result));
         return result;
     }
 
