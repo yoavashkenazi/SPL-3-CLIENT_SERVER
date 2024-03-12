@@ -257,6 +257,7 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
 
         }
         this.currentOperation = OpCode.DIRQ;
+        this.fileChunksReceived = new ConcurrentLinkedQueue<>();
         return new byte[] { 0, 6 };
     }
 
