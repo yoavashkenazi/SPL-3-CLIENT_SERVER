@@ -41,7 +41,7 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
             in = new BufferedInputStream(sock.getInputStream());
             out = new BufferedOutputStream(sock.getOutputStream());
             this.connectionId = UsersHolder.allocateId();
-            this.protocol.start(this.connectionId, connections, this);
+            this.protocol.start(this.connectionId, connections);
             this.connections.connect(connectionId, this);
             while (!protocol.shouldTerminate() && connected) {
                 // write if there is packets to write
@@ -55,14 +55,15 @@ public class BlockingConnectionHandler<T> implements Runnable, ConnectionHandler
                     if (nextMessage != null) {
                         protocol.process(nextMessage);
                         // if DISC Packet was received
-                        if (this.protocol.shouldTerminate()){
-                            byte[] discAckPacket = new byte[]{0,4,0,0};
+                        if (this.protocol.shouldTerminate()) {
+                            byte[] discAckPacket = new byte[] { 0, 4, 0, 0 };
                             out.write(discAckPacket);
                             out.flush();
                         }
                     }
                 }
             }
+            close();
 
         } catch (IOException ex) {
             ex.printStackTrace();

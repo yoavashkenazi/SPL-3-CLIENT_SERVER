@@ -21,7 +21,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import javax.xml.crypto.dsig.keyinfo.KeyValue;
 
 import bgu.spl.net.api.BidiMessagingProtocol;
-import bgu.spl.net.srv.ConnectionHandler;
 import bgu.spl.net.srv.Connections;
 
 public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
@@ -29,7 +28,6 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     private boolean shouldTerminate = false;
     private int connectionId;
     private Connections<byte[]> connections;
-    private ConnectionHandler<byte[]> connectionHandler;
     // queues to aggregate the data packets
     private Queue<byte[]> fileChunksToSend;
     private Queue<byte[]> fileChunksReceived;
@@ -37,12 +35,11 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     private final String dirPath = "./Flies/";
 
     @Override
-    public void start(int connectionId, Connections<byte[]> connections, ConnectionHandler<byte[]> connectionHandler) {
+    public void start(int connectionId, Connections<byte[]> connections) {
         // TODO implement this
         this.shouldTerminate = false;
         this.connectionId = connectionId;
         this.connections = connections;
-        this.connectionHandler = connectionHandler;
         this.fileChunksToSend = null;
         this.fileChunksReceived = null;
         // ConnectionsImpl.ids_login.put(connectionId, true);
@@ -170,7 +167,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
     private void logrqPacketProccess(byte[] packet) {
         String username = getNameFromMessage(packet);
         // if the user name is already taken, sends error
-        if (UsersHolder.isUsernameLoggedIn(username)||UsersHolder.isClientConnected(this.connectionId)) {
+        if (UsersHolder.isUsernameLoggedIn(username) || UsersHolder.isClientConnected(this.connectionId)) {
             this.connections.send(connectionId, generateERROR(ERROR_TYPE.USER_ALREADY_LOGGED_IN));
         }
         // if the user name is available, connects the client and register the user name
@@ -451,7 +448,7 @@ public class TftpProtocol implements BidiMessagingProtocol<byte[]> {
         // Use try-with-resources to ensure proper resource management (closes the
         // writer automatically)
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
-            
+
             // Check if any files were found in the directory
             if (files != null) {
                 // Iterate through the files in the directory
