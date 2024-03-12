@@ -53,11 +53,11 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
 
     public byte[] processUserInput(String input) {
         // process user input and return the appopriate byte array
-        System.out.println("user input: " + input);
         String opcodeStr = "";
         try {
             opcodeStr = input.split(" ")[0];
         } catch (Exception ex) {
+            System.out.println("invalid command1");
             return null;
         }
 
@@ -67,14 +67,15 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
             case "WRQ":
                 return processWRQPacket(input);
             case "DIRQ":
-                return processDIRQPacket();
+                return processDIRQPacket(input);
             case "LOGRQ":
                 return processLOGRQPacket(input);
             case "DELRQ":
                 return processDELRQPacket(input);
             case "DISC":
-                return processDISCPacket();
+                return processDISCPacket(input);
             default:
+                System.out.println("invalid command");
                 return null;
         }
     }
@@ -90,17 +91,19 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                     this.currentOperation = OpCode.UNKOWN;
                 }
             case LOGRQ:
-                System.out.println("connection successfull");
                 this.currentOperation = OpCode.UNKOWN;
+                System.out.println("connection successfull");
                 return null;
             case DELRQ:
                 this.currentOperation = OpCode.UNKOWN;
                 return null;
             case DISC:
+                this.currentOperation = OpCode.UNKOWN;
                 System.out.println("disconnection successfull");
                 this.shouldTerminate = true;
                 return null;
             default:
+                this.currentOperation = OpCode.UNKOWN;
                 return null;
         }
     }
@@ -134,6 +137,7 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                 // to send
                 if (errorNum == 2 || errorNum == 5) {
                     this.fileChunksToSend.clear();
+                    this.writeFileName = null;
                 }
                 break;
             case DISC:
@@ -150,11 +154,9 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
 
         // adding the packet to the queue
         this.fileChunksReceived.add(message);
-        // bring new code!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         byte[] blockNum = new byte[2];
         blockNum[0] = message[4];
         blockNum[1] = message[5];
-        // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         if (message.length < 518) {
             // making the file from the queue of DATA packets
             byte[] fileData = concatPacketsToByteArray(fileChunksReceived);
@@ -194,7 +196,13 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
     }
 
     private byte[] processRRQPacket(String userInput) {
-        String fileName = userInput.split(" ", 2)[1];
+        String fileName = "";
+        try {
+            fileName = userInput.split(" ", 2)[1];
+        } catch (Exception ex) {
+            System.out.println("invalid command");
+            return null;
+        }
         if (isFileInFolder(fileName)) {
             System.out.println("File already exists");
             return null;
@@ -214,16 +222,21 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
     }
 
     private byte[] processWRQPacket(String userInput) {
-
-        // creates the packet
-        String fileName = userInput.split(" ", 2)[1];
-        byte[] fileNameInBytes = fileName.getBytes(StandardCharsets.UTF_8);
-        byte[] packet = new byte[2 + fileNameInBytes.length];
-        packet[0] = 0;
-        packet[1] = (byte) 2;
-        System.arraycopy(fileNameInBytes, 0, packet, 2, fileNameInBytes.length);
+        String fileName = "";
+        try {
+            fileName = userInput.split(" ", 2)[1];
+        } catch (Exception ex) {
+            System.out.println("invalid command");
+            return null;
+        }
 
         if (isFileInFolder(fileName)) {
+            // creates the packet
+            byte[] fileNameInBytes = fileName.getBytes(StandardCharsets.UTF_8);
+            byte[] packet = new byte[2 + fileNameInBytes.length];
+            packet[0] = 0;
+            packet[1] = (byte) 2;
+            System.arraycopy(fileNameInBytes, 0, packet, 2, fileNameInBytes.length);
             this.fileChunksToSend = splitFileIntoPackets(this.dirPath + fileName, 512);
             this.currentOperation = OpCode.WRQ;
             this.writeFileName = fileName;
@@ -235,14 +248,27 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
 
     }
 
-    private byte[] processDIRQPacket() {
+    private byte[] processDIRQPacket(String userInput) {
+        try {
+            String message = userInput.split(" ", 2)[1];
+            System.out.println("invalid command");
+            return null;
+        } catch (Exception ex) {
+
+        }
         this.currentOperation = OpCode.DIRQ;
         return new byte[] { 0, 6 };
     }
 
     private byte[] processLOGRQPacket(String userInput) {
+        String username = "";
+        try {
+            username = userInput.split(" ", 2)[1];
+        } catch (Exception ex) {
+            System.out.println("invalid command");
+            return null;
+        }
         this.currentOperation = OpCode.LOGRQ;
-        String username = userInput.split(" ", 2)[1];
         byte[] usernameInBytes = username.getBytes(StandardCharsets.UTF_8);
         byte[] packet = new byte[2 + usernameInBytes.length];
         packet[0] = 0;
@@ -252,8 +278,15 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
     }
 
     private byte[] processDELRQPacket(String userInput) {
+        String fileName = "";
+        try {
+            fileName = userInput.split(" ", 2)[1];
+        } catch (Exception ex) {
+            System.out.println("invalid command");
+            return null;
+        }
+
         this.currentOperation = OpCode.DELRQ;
-        String fileName = userInput.split(" ", 2)[1];
         byte[] fileNameInBytes = fileName.getBytes(StandardCharsets.UTF_8);
         byte[] packet = new byte[2 + fileNameInBytes.length];
         packet[0] = 0;
@@ -262,7 +295,13 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
         return packet;
     }
 
-    private byte[] processDISCPacket() {
+    private byte[] processDISCPacket(String userInput) {
+        try {
+            String message = userInput.split(" ", 2)[1];
+            System.out.println("invalid command");
+            return null;
+        } catch (Exception ex) {
+        }
         this.currentOperation = OpCode.DISC;
         return new byte[] { 0, 10 };
     }

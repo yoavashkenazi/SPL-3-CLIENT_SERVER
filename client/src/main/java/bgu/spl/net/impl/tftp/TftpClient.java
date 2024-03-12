@@ -17,8 +17,6 @@ public class TftpClient {
     // TODO: implement the main logic of the client, when using a thread per client
     // the main logic goes here
 
-    private static volatile boolean shouldTerminate = false;
-
     public static void main(String[] args) throws UnknownHostException, IOException {
         if (args.length == 0) {
             args = new String[] { "localhost", "hello" };
@@ -36,7 +34,7 @@ public class TftpClient {
             TftpClientProtocol protocol = new TftpClientProtocol();
             TftpClientEncoderDecoder encdec = new TftpClientEncoderDecoder();
             int read;
-
+            System.out.println("connected to server!");
             // creates the inputThread and runs it
             (new Thread(new InputThread(protocol, userInputToProcess))).start();
 
@@ -60,7 +58,7 @@ public class TftpClient {
                     // System.out.println("CH after in.read");
                     byte[] nextMessage = encdec.decodeNextByte((byte) read);
                     if (nextMessage != null) {
-                        System.out.println(Arrays.toString((byte[]) nextMessage));
+
                         byte[] response = protocol.process(nextMessage);
                         if (response != null) {
                             // System.out.println("CH before write");
