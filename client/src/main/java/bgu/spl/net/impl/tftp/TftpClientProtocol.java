@@ -171,7 +171,8 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                     break;
                 case DIRQ:
                     int j = 0;
-                    for (int i = 0; i < fileData.length; i++) {
+                    int i = 0;
+                    for (i = 0; i < fileData.length; i++) {
                         if (fileData[i] == 0) {
                             try {
                                 System.out.println(new String(Arrays.copyOfRange(fileData, j, i), "UTF-8"));
@@ -180,6 +181,10 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                             }
                             j = i + 1;
                         }
+                    }
+                    try {
+                        System.out.println(new String(Arrays.copyOfRange(fileData, j, i), "UTF-8"));
+                    } catch (UnsupportedEncodingException e) {
                     }
 
                     break;
