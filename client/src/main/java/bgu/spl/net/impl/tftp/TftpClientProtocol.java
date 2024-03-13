@@ -172,6 +172,9 @@ public class TftpClientProtocol implements MessagingProtocol<byte[]> {
                 case DIRQ:
                     int j = 0;
                     int i = 0;
+                    if (fileData.length==0){
+                        break;
+                    }
                     for (i = 0; i < fileData.length; i++) {
                         if (fileData[i] == 0) {
                             try {
