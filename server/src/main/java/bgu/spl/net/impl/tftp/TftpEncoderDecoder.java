@@ -43,7 +43,7 @@ public class TftpEncoderDecoder implements MessageEncoderDecoder<byte[]> {
                     return popPacket();
                 case DATA:
                     if (len == 3){
-                        short b_short = ( short ) ((( short ) bytes [len-1]) << 8 | ( short ) ( nextByte) );
+                        short b_short = ( short ) ((( short ) bytes [len-1]) << 8 | ( short ) ( nextByte) & 0x00ff);
                         dataPacketSize = (int)b_short;
                     }
                     else if(len == dataPacketSize+5){
